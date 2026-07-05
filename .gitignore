@@ -1,0 +1,18 @@
+# Build results
+bin/
+obj/
+*.dll
+*.pdb
+
+# IDE files
+.vs/
+.vscode/
+*.sln.user
+*.suo
+
+# Game files (don't commit DLLs from game installations)
+lib/*.dll
+
+# OS
+.DS_Store
+Thumbs.db
