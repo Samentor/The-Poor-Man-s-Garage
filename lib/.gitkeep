@@ -1,0 +1,20 @@
+# Game DLL References
+
+This folder should contain the required DLL files from your My Summer Car installation.
+
+## Required Files:
+- `Assembly-CSharp.dll`
+- `MSCLoader.dll`
+- `UnityEngine.dll`
+
+## How to Add Them:
+
+1. Locate your My Summer Car game installation folder
+2. Navigate to: `My Summer Car/Mods/` or game root
+3. Copy the three DLL files listed above
+4. Paste them into this `lib/` folder
+
+## Notes:
+- These files are referenced by the `.csproj` file for compilation
+- They are added to `.gitignore` so they won't be committed to GitHub
+- You only need to do this once for local development
