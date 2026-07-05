@@ -11,7 +11,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v1
@@ -20,7 +20,7 @@ jobs:
       run: msbuild SamentorMods.csproj /p:Configuration=Release /p:Platform="Any CPU"
 
     - name: Upload Build Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: SamentorMods
         path: bin/Release/SamentorMods.dll
