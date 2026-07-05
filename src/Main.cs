@@ -15,7 +15,7 @@ namespace SamentorMods
         private Keybind summonKey;
         private Keybind jumpstartKey;
 
-        public override void OnLoad()
+        public virtual void OnLoad()
         {
             // Initialize Keybinds
             summonKey = new Keybind("SummonHammer", "Summon Sledgehammer", KeyCode.H, KeyCode.LeftControl);
@@ -28,7 +28,7 @@ namespace SamentorMods
             ModConsole.Log("[Samentor Utilities] Mod framework successfully initialized!");
         }
 
-        public override void Update()
+        public virtual void Update()
         {
             // Handle Sledgehammer Summon
             if (summonKey.IsPressed())
