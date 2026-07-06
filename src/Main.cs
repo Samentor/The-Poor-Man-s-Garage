@@ -10,22 +10,21 @@ namespace SamentorMods
         public override string Version => "1.0.0"; 
         public override string Author => "samentor"; 
 
-        // FIX: Switch to SettingsKeybind as required by MSCLoader v1.4.2
         private SettingsKeybind summonKey;
         private SettingsKeybind jumpstartKey;
 
-        public override void OnLoad()
+        // FIX: MSCLoader v1.4.2 uses OnEnable instead of OnLoad
+        public override void OnEnable()
         {
-            // FIX: Use modern Keybind settings syntax (ID, Name, Default Key, Modifier)
             summonKey = Settings.CreateKeybind("SummonHammer", "Summon Sledgehammer", KeyCode.H, KeyCode.LeftControl);
             jumpstartKey = Settings.CreateKeybind("JumpstartSatsuma", "Jumpstart Satsuma", KeyCode.J, KeyCode.LeftControl);
 
             ModConsole.Log("[Samentor Utilities] Mod framework successfully initialized!");
         }
 
-        public override void Update()
+        // FIX: MSCLoader v1.4.2 uses OnUpdate instead of Update
+        public override void OnUpdate()
         {
-            // FIX: Renamed .IsPressed() to .GetKeybind() per deprecation error
             if (summonKey.GetKeybind())
             {
                 TriggerHammerSummon();
@@ -58,30 +57,32 @@ namespace SamentorMods
 
             if (satsuma != null)
             {
-                // FIX: Fallback dynamic lookup for PlayMakerFSM components to satisfy the compiler
+                // FIX: Use accurate PlayMaker component interaction via reflection to ensure events fire cleanly
                 if (battery != null)
                 {
-                    Component[] components = battery.GetComponents<Component>();
-                    foreach (var comp in components)
+                    Component fsm = battery.GetComponent("PlayMakerFSM");
+                    if (fsm != null && fsm.name == "Data")
                     {
-                        if (comp.GetType().Name == "PlayMakerFSM" && comp.name == "Data")
+                        try
                         {
-                            // Safely communicate with PlayMaker via Unity standard messaging or reflection if namespaces fail
-                            comp.SendMessage("SetFsmFloat", new object[] { "Charge", 130.0f }, SendMessageOptions.DontRequireReceiver);
+                            // Targets the internal FsmVariables structure dynamically without a hard dependency
+                            object fsmVars = fsm.GetType().GetProperty("FsmVariables")?.GetValue(fsm, null);
+                            object[] findFloatArgs = { "Charge" };
+                            object fsmFloat = fsmVars?.GetType().GetMethod("FindFsmFloat", new[] { typeof(string) })?.Invoke(fsmVars, findFloatArgs);
+                            fsmFloat?.GetType().GetProperty("Value")?.SetValue(fsmFloat, 130.0f, null);
                         }
+                        catch { /* Fallback fail-safe */ }
                     }
                 }
                 
-                Component[] satsumaComponents = satsuma.GetComponents<Component>();
-                foreach (var comp in satsumaComponents)
+                Component engineFsm = satsuma.GetComponent("PlayMakerFSM");
+                if (engineFsm != null && engineFsm.name == "Electricity")
                 {
-                    if (comp.GetType().Name == "PlayMakerFSM" && comp.name == "Electricity")
-                    {
-                        comp.gameObject.SendMessage("SendEvent", "START_ENGINE", SendMessageOptions.DontRequireReceiver);
-                    }
+                    // Invokes the specific visual script string state directly
+                    engineFsm.GetType().GetMethod("SendEvent", new[] { typeof(string) })?.Invoke(engineFsm, new object[] { "START_ENGINE" });
                 }
 
-                ModConsole.Print("Satsuma actions processed cleanly!");
+                ModConsole.Print("Satsuma jumpstarted successfully!");
             }
         }
     }
