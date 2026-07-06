@@ -1,5 +1,6 @@
 using MSCLoader;
 using UnityEngine;
+using PlayMaker;
 
 namespace SamentorMods
 {
@@ -11,33 +12,45 @@ namespace SamentorMods
         public override string Version => "1.0.0"; 
         public override string Author => "samentor"; 
 
-        // Keybind Settings
-        private Keybind summonKey;
-        private Keybind jumpstartKey;
+        // Keybind Settings using new SettingsKeybind format
+        public SettingsKeybind summonKey;
+        public SettingsKeybind jumpstartKey;
+
+        public virtual void PreLoad()
+        {
+            // Initialize Keybinds using new settings format
+            summonKey = new SettingsKeybind()
+            {
+                Name = "Summon Sledgehammer",
+                Key = KeyCode.H,
+                Modifier = KeyCode.LeftControl
+            };
+
+            jumpstartKey = new SettingsKeybind()
+            {
+                Name = "Jumpstart Satsuma",
+                Key = KeyCode.J,
+                Modifier = KeyCode.LeftControl
+            };
+
+            ModConsole.Log("[Samentor Utilities] Keybinds initialized!");
+        }
 
         public virtual void OnLoad()
         {
-            // Initialize Keybinds
-            summonKey = new Keybind("SummonHammer", "Summon Sledgehammer", KeyCode.H, KeyCode.LeftControl);
-            jumpstartKey = new Keybind("JumpstartSatsuma", "Jumpstart Satsuma", KeyCode.J, KeyCode.LeftControl);
-
-            // Register with MSCLoader
-            Keybind.Add(this, summonKey);
-            Keybind.Add(this, jumpstartKey);
-
             ModConsole.Log("[Samentor Utilities] Mod framework successfully initialized!");
         }
 
         public virtual void Update()
         {
             // Handle Sledgehammer Summon
-            if (summonKey.IsPressed())
+            if (summonKey.GetKeybind())
             {
                 TriggerHammerSummon();
             }
 
             // Handle Satsuma Jumpstart
-            if (jumpstartKey.IsPressed())
+            if (jumpstartKey.GetKeybind())
             {
                 TriggerSatsumaJumpstart();
             }
