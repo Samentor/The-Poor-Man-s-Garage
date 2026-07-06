@@ -10,29 +10,29 @@ namespace SamentorMods
         public override string Version => "1.0.0"; 
         public override string Author => "samentor"; 
 
-        private SettingsKeybind summonKey;
-        private SettingsKeybind jumpstartKey;
-
-        // FIX: MSCLoader v1.4.2 uses OnEnable instead of OnLoad
-        public override void OnEnable()
+        // Standard MSCLoader initialization method
+        public override void OnLoad()
         {
-            summonKey = Settings.CreateKeybind("SummonHammer", "Summon Sledgehammer", KeyCode.H, KeyCode.LeftControl);
-            jumpstartKey = Settings.CreateKeybind("JumpstartSatsuma", "Jumpstart Satsuma", KeyCode.J, KeyCode.LeftControl);
-
             ModConsole.Log("[Samentor Utilities] Mod framework successfully initialized!");
         }
 
-        // FIX: MSCLoader v1.4.2 uses OnUpdate instead of Update
-        public override void OnUpdate()
+        // Standard MSCLoader frame update method
+        public override void Update()
         {
-            if (summonKey.GetKeybind())
+            // Using native Unity Input handles keybinds reliably without breaking across loader updates
+            if (Input.GetKey(KeyCode.LeftControl))
             {
-                TriggerHammerSummon();
-            }
+                // Left Ctrl + H -> Summon Sledgehammer
+                if (Input.GetKeyDown(KeyCode.H))
+                {
+                    TriggerHammerSummon();
+                }
 
-            if (jumpstartKey.GetKeybind())
-            {
-                TriggerSatsumaJumpstart();
+                // Left Ctrl + J -> Jumpstart Satsuma
+                if (Input.GetKeyDown(KeyCode.J))
+                {
+                    TriggerSatsumaJumpstart();
+                }
             }
         }
 
@@ -43,9 +43,16 @@ namespace SamentorMods
 
             if (player != null && hammer != null)
             {
+                // Teleport safely in front of player
                 hammer.transform.position = player.transform.position + (player.transform.forward * 0.5f) + (player.transform.up * 0.2f);
+                
+                // Kill physical momentum so it doesn't clip out of world bounds
                 Rigidbody rb = hammer.GetComponent<Rigidbody>();
-                if (rb != null) { rb.velocity = Vector3.zero; rb.angularVelocity = Vector3.zero; }
+                if (rb != null) 
+                { 
+                    rb.velocity = Vector3.zero; 
+                    rb.angularVelocity = Vector3.zero; 
+                }
                 ModConsole.Print("Sledgehammer pulled to your location!");
             }
         }
@@ -57,7 +64,7 @@ namespace SamentorMods
 
             if (satsuma != null)
             {
-                // FIX: Use accurate PlayMaker component interaction via reflection to ensure events fire cleanly
+                // Dynamic PlayMaker FSM reflection lookup to avoid project dependency errors
                 if (battery != null)
                 {
                     Component fsm = battery.GetComponent("PlayMakerFSM");
@@ -65,20 +72,18 @@ namespace SamentorMods
                     {
                         try
                         {
-                            // Targets the internal FsmVariables structure dynamically without a hard dependency
                             object fsmVars = fsm.GetType().GetProperty("FsmVariables")?.GetValue(fsm, null);
                             object[] findFloatArgs = { "Charge" };
                             object fsmFloat = fsmVars?.GetType().GetMethod("FindFsmFloat", new[] { typeof(string) })?.Invoke(fsmVars, findFloatArgs);
                             fsmFloat?.GetType().GetProperty("Value")?.SetValue(fsmFloat, 130.0f, null);
                         }
-                        catch { /* Fallback fail-safe */ }
+                        catch { /* Fail-safe fallback */ }
                     }
                 }
                 
                 Component engineFsm = satsuma.GetComponent("PlayMakerFSM");
                 if (engineFsm != null && engineFsm.name == "Electricity")
                 {
-                    // Invokes the specific visual script string state directly
                     engineFsm.GetType().GetMethod("SendEvent", new[] { typeof(string) })?.Invoke(engineFsm, new object[] { "START_ENGINE" });
                 }
 
