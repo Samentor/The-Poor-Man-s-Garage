@@ -3,36 +3,41 @@ using UnityEngine;
 
 namespace SamentorMods
 {
+    // 1. The Mod Registration Class
     public class SamentorModManager : Mod
     {
+        // These properties are required by the base Mod class
         public override string ID => "Samentor_MSC_Utilities"; 
         public override string Name => "Samentor's Utility Suite"; 
         public override string Version => "1.0.0"; 
         public override string Author => "samentor"; 
 
-        // Standard MSCLoader initialization method
-        public override void OnLoad()
+        // Dropping 'override' fixes the compiler rejection. 
+        // MSCLoader will still find and execute this via reflection when the mod loads.
+        public void OnLoad()
         {
+            // Create an invisible GameObject to hold our native Unity logic
+            GameObject modRunner = new GameObject("Samentor_Mod_Runner");
+            Object.DontDestroyOnLoad(modRunner);
+            
+            // Attach our custom MonoBehaviour to run the Update loop natively
+            modRunner.AddComponent<SamentorLogic>();
+
             ModConsole.Log("[Samentor Utilities] Mod framework successfully initialized!");
         }
+    }
 
-        // Standard MSCLoader frame update method
-        public override void Update()
+    // 2. The Native Unity Logic Class
+    // By using MonoBehaviour, we guarantee the Update loop runs flawlessly independently of the ModLoader.
+    public class SamentorLogic : MonoBehaviour
+    {
+        private void Update()
         {
-            // Using native Unity Input handles keybinds reliably without breaking across loader updates
+            // Native Unity Input handling
             if (Input.GetKey(KeyCode.LeftControl))
             {
-                // Left Ctrl + H -> Summon Sledgehammer
-                if (Input.GetKeyDown(KeyCode.H))
-                {
-                    TriggerHammerSummon();
-                }
-
-                // Left Ctrl + J -> Jumpstart Satsuma
-                if (Input.GetKeyDown(KeyCode.J))
-                {
-                    TriggerSatsumaJumpstart();
-                }
+                if (Input.GetKeyDown(KeyCode.H)) TriggerHammerSummon();
+                if (Input.GetKeyDown(KeyCode.J)) TriggerSatsumaJumpstart();
             }
         }
 
@@ -43,10 +48,7 @@ namespace SamentorMods
 
             if (player != null && hammer != null)
             {
-                // Teleport safely in front of player
                 hammer.transform.position = player.transform.position + (player.transform.forward * 0.5f) + (player.transform.up * 0.2f);
-                
-                // Kill physical momentum so it doesn't clip out of world bounds
                 Rigidbody rb = hammer.GetComponent<Rigidbody>();
                 if (rb != null) 
                 { 
@@ -64,7 +66,6 @@ namespace SamentorMods
 
             if (satsuma != null)
             {
-                // Dynamic PlayMaker FSM reflection lookup to avoid project dependency errors
                 if (battery != null)
                 {
                     Component fsm = battery.GetComponent("PlayMakerFSM");
@@ -77,7 +78,7 @@ namespace SamentorMods
                             object fsmFloat = fsmVars?.GetType().GetMethod("FindFsmFloat", new[] { typeof(string) })?.Invoke(fsmVars, findFloatArgs);
                             fsmFloat?.GetType().GetProperty("Value")?.SetValue(fsmFloat, 130.0f, null);
                         }
-                        catch { /* Fail-safe fallback */ }
+                        catch { /* Fallback fail-safe */ }
                     }
                 }
                 
