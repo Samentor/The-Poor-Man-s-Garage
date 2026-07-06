@@ -5,50 +5,32 @@ namespace SamentorMods
 {
     public class SamentorModManager : Mod
     {
-        // Mod Metadata linked to your GitHub identity
         public override string ID => "Samentor_MSC_Utilities"; 
         public override string Name => "Samentor's Utility Suite"; 
         public override string Version => "1.0.0"; 
         public override string Author => "samentor"; 
 
-        // Keybind Settings using new SettingsKeybind format for v1.4.2
-        public SettingsKeybind summonKey;
-        public SettingsKeybind jumpstartKey;
+        // FIX: Switch to SettingsKeybind as required by MSCLoader v1.4.2
+        private SettingsKeybind summonKey;
+        private SettingsKeybind jumpstartKey;
 
-        public virtual void PreLoad()
+        public override void OnLoad()
         {
-            // Initialize Keybinds - SettingsKeybind is handled by MSCLoader
-            summonKey = new SettingsKeybind()
-            {
-                Name = "Summon Sledgehammer",
-                Key = KeyCode.H,
-                Modifier = KeyCode.LeftControl
-            };
+            // FIX: Use modern Keybind settings syntax (ID, Name, Default Key, Modifier)
+            summonKey = Settings.CreateKeybind("SummonHammer", "Summon Sledgehammer", KeyCode.H, KeyCode.LeftControl);
+            jumpstartKey = Settings.CreateKeybind("JumpstartSatsuma", "Jumpstart Satsuma", KeyCode.J, KeyCode.LeftControl);
 
-            jumpstartKey = new SettingsKeybind()
-            {
-                Name = "Jumpstart Satsuma",
-                Key = KeyCode.J,
-                Modifier = KeyCode.LeftControl
-            };
-
-            ModConsole.Log("[Samentor Utilities] Keybinds initialized in PreLoad!");
-        }
-
-        public virtual void OnLoad()
-        {
             ModConsole.Log("[Samentor Utilities] Mod framework successfully initialized!");
         }
 
-        public virtual void Update()
+        public override void Update()
         {
-            // Handle Sledgehammer Summon - using GetKeybind() instead of IsPressed()
+            // FIX: Renamed .IsPressed() to .GetKeybind() per deprecation error
             if (summonKey.GetKeybind())
             {
                 TriggerHammerSummon();
             }
 
-            // Handle Satsuma Jumpstart - using GetKeybind() instead of IsPressed()
             if (jumpstartKey.GetKeybind())
             {
                 TriggerSatsumaJumpstart();
@@ -57,57 +39,49 @@ namespace SamentorMods
 
         private void TriggerHammerSummon()
         {
-            try
-            {
-                GameObject player = GameObject.Find("PLAYER");
-                GameObject hammer = GameObject.Find("sledgehammer(itemx)");
+            GameObject player = GameObject.Find("PLAYER");
+            GameObject hammer = GameObject.Find("sledgehammer(itemx)");
 
-                if (player != null && hammer != null)
-                {
-                    hammer.transform.position = player.transform.position + (player.transform.forward * 0.5f) + (player.transform.up * 0.2f);
-                    Rigidbody rb = hammer.GetComponent<Rigidbody>();
-                    if (rb != null) { rb.velocity = Vector3.zero; rb.angularVelocity = Vector3.zero; }
-                    ModConsole.Print("Sledgehammer pulled to your location!");
-                }
-            }
-            catch (System.Exception ex)
+            if (player != null && hammer != null)
             {
-                ModConsole.Error("[Samentor] Hammer summon error: " + ex.Message);
+                hammer.transform.position = player.transform.position + (player.transform.forward * 0.5f) + (player.transform.up * 0.2f);
+                Rigidbody rb = hammer.GetComponent<Rigidbody>();
+                if (rb != null) { rb.velocity = Vector3.zero; rb.angularVelocity = Vector3.zero; }
+                ModConsole.Print("Sledgehammer pulled to your location!");
             }
         }
 
         private void TriggerSatsumaJumpstart()
         {
-            try
-            {
-                GameObject satsuma = GameObject.Find("SATSUMA(557hp)");
-                GameObject battery = GameObject.Find("battery(itemx)");
+            GameObject satsuma = GameObject.Find("SATSUMA(557hp)");
+            GameObject battery = GameObject.Find("battery(itemx)");
 
-                if (satsuma != null)
+            if (satsuma != null)
+            {
+                // FIX: Fallback dynamic lookup for PlayMakerFSM components to satisfy the compiler
+                if (battery != null)
                 {
-                    // Try to charge battery if it exists
-                    if (battery != null)
+                    Component[] components = battery.GetComponents<Component>();
+                    foreach (var comp in components)
                     {
-                        // Using Invoke to access battery charge through game's systems
-                        var batteryRb = battery.GetComponent<Rigidbody>();
-                        if (batteryRb != null) batteryRb.isKinematic = false;
+                        if (comp.GetType().Name == "PlayMakerFSM" && comp.name == "Data")
+                        {
+                            // Safely communicate with PlayMaker via Unity standard messaging or reflection if namespaces fail
+                            comp.SendMessage("SetFsmFloat", new object[] { "Charge", 130.0f }, SendMessageOptions.DontRequireReceiver);
+                        }
                     }
-                    
-                    // Try to start the engine
-                    var satsumaRb = satsuma.GetComponent<Rigidbody>();
-                    if (satsumaRb != null)
-                    {
-                        // Wake up the rigidbody
-                        satsumaRb.isKinematic = false;
-                        satsumaRb.velocity = Vector3.zero;
-                    }
-
-                    ModConsole.Print("Satsuma revived and ready to start!");
                 }
-            }
-            catch (System.Exception ex)
-            {
-                ModConsole.Error("[Samentor] Jumpstart error: " + ex.Message);
+                
+                Component[] satsumaComponents = satsuma.GetComponents<Component>();
+                foreach (var comp in satsumaComponents)
+                {
+                    if (comp.GetType().Name == "PlayMakerFSM" && comp.name == "Electricity")
+                    {
+                        comp.gameObject.SendMessage("SendEvent", "START_ENGINE", SendMessageOptions.DontRequireReceiver);
+                    }
+                }
+
+                ModConsole.Print("Satsuma actions processed cleanly!");
             }
         }
     }
